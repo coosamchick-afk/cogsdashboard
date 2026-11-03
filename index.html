@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RestoCost Pro - Kalkulator HPP & Kontrol Margin Restoran</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Vue.js 3 Production CDN (Zero Build Step) -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+
+  <style>
+    body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+    [v-cloak] { display: none; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased selection:bg-orange-500 selection:text-white">
+
+<div id="app" v-cloak>
+
+  <!-- ========================================== -->
+  <!-- 1. HALAMAN LOGIN (FITUR 7)                 -->
+  <!-- ========================================== -->
+  <div v-if="!user" class="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-orange-950 flex items-center justify-center p-4">
+    <div class="w-full max-w-md">
+      <div class="text-center mb-8">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white shadow-xl shadow-orange-500/25 mb-4 text-2xl font-extrabold">
+          🍲
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+          RestoCost <span class="text-orange-400">Pro</span>
+        </h1>
+        <p class="text-slate-400 text-xs sm:text-sm mt-1">
+          Sistem Kontrol HPP & Margin Restoran Berbasis Spreadsheet
+        </p>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 border border-slate-100">
+        <h2 class="text-lg font-bold text-slate-900 mb-1">Masuk ke Dashboard</h2>
+        <p class="text-xs text-slate-500 mb-5">Gunakan akun restoran Anda untuk mengontrol biaya resep dan margin.</p>
+
+        <form @submit.prevent="handleLogin" class="space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Username / Email</label>
+            <input v-model="loginForm.username" type="text" required class="w-full px-3 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500" placeholder="admin">
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Kata Sandi</label>
+            <input v-model="loginForm.password" type="password" required class="w-full px-3 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500" placeholder="••••••••">
+          </div>
+
+          <button type="submit" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-bold text-sm shadow-lg shadow-orange-500/25 transition-all">
+            Buka Dashboard Resto &rarr;
+          </button>
+        </form>
+
+        <div class="mt-6 pt-5 border-t border-slate-100">
+          <p class="text-center text-xs font-bold text-slate-400 mb-2.5">⚡ Akun Demo Cepat:</p>
+          <div class="grid grid-cols-2 gap-2">
+            <button @click="quickLogin('admin')" type="button" class="p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-200 text-left transition-colors">
+              <div class="text-xs font-bold text-slate-800">👑 Owner / Admin</div>
+              <div class="text-[10px] text-slate-500">admin / admin123</div>
+            </button>
+            <button @click="quickLogin('chef')" type="button" class="p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-200 text-left transition-colors">
+              <div class="text-xs font-bold text-slate-800">👨‍🍳 Head Chef</div>
+              <div class="text-[10px] text-slate-500">chef / chef123</div>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 2. MAIN APP SHELL                          -->
+  <!-- ========================================== -->
+  <div v-else class="min-h-screen flex flex-col justify-between">
+    <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16 sm:h-20 gap-3">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white flex items-center justify-center font-extrabold text-xl shadow-md shadow-orange-500/20">
+              🍲
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="font-extrabold text-slate-900 text-base sm:text-lg tracking-tight">
+                  RestoCost <span class="text-orange-500">Pro</span>
+                </span>
+                <span class="hidden sm:inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-orange-100 text-orange-700">
+                  HPP & Margin
+                </span>
+              </div>
+              <p class="text-xs text-slate-500 hidden md:block">{{ restaurantName }}</p>
+            </div>
+          </div>
+
+          <nav class="hidden lg:flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold">
+            <button @click="activeTab = 'dashboard'" :class="activeTab === 'dashboard' ? 'bg-white text-orange-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'" class="px-3.5 py-2 rounded-lg transition-all">
+              📊 Dashboard Kontrol
+            </button>
+            <button @click="activeTab = 'master-bahan'" :class="activeTab === 'master-bahan' ? 'bg-white text-orange-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'" class="px-3.5 py-2 rounded-lg transition-all">
+              📦 Master Bahan ({{ bahanList.length }})
+            </button>
+            <button @click="activeTab = 'resep-menu'" :class="activeTab === 'resep-menu' ? 'bg-white text-orange-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'" class="px-3.5 py-2 rounded-lg transition-all">
+              🍲 Resep & HPP ({{ menuList.length }})
+            </button>
+            <button @click="activeTab = 'spreadsheet'" :class="activeTab === 'spreadsheet' ? 'bg-white text-orange-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'" class="px-3.5 py-2 rounded-lg transition-all">
+              📑 Database Sheet
+            </button>
+          </nav>
+
+          <!-- Mode Switcher & User Profile (FITUR 3 & 4) -->
+          <div class="flex items-center gap-2 sm:gap-3">
+            <div class="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+              <button @click="pricingMode = 'aktual'" :class="pricingMode === 'aktual' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-600'" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all">
+                <span class="w-2 h-2 rounded-full bg-emerald-300"></span>
+                <span>Aktual</span>
+              </button>
+              <button @click="pricingMode = 'maksimal'" :class="pricingMode === 'maksimal' ? 'bg-rose-600 text-white shadow-xs' : 'text-slate-600'" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all">
+                <span class="w-2 h-2 rounded-full bg-rose-300"></span>
+                <span>Maksimal</span>
+              </button>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <div class="hidden sm:block text-right">
+                <div class="text-xs font-bold text-slate-800 leading-tight">{{ user.name }}</div>
+                <div class="text-[10px] text-slate-500">{{ user.role }}</div>
+              </div>
+              <button @click="handleLogout" title="Keluar / Logout" class="px-2.5 py-1.5 rounded-xl border border-slate-200 hover:bg-rose-50 hover:text-rose-600 text-slate-600 text-xs font-bold transition-colors">
+                Keluar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex lg:hidden items-center justify-around py-2 border-t border-slate-100 text-xs font-semibold">
+          <button @click="activeTab = 'dashboard'" :class="activeTab === 'dashboard' ? 'text-orange-600 font-bold' : 'text-slate-500'">Dashboard</button>
+          <button @click="activeTab = 'master-bahan'" :class="activeTab === 'master-bahan' ? 'text-orange-600 font-bold' : 'text-slate-500'">Master Bahan</button>
+          <button @click="activeTab = 'resep-menu'" :class="activeTab === 'resep-menu' ? 'text-orange-600 font-bold' : 'text-slate-500'">Resep & HPP</button>
+          <button @click="activeTab = 'spreadsheet'" :class="activeTab === 'spreadsheet' ? 'text-orange-600 font-bold' : 'text-slate-500'">Sheet Sync</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full">
+
+      <!-- ========================================== -->
+      <!-- TAB 1: DASHBOARD KONTROL HPP               -->
+      <!-- ========================================== -->
+      <section v-if="activeTab === 'dashboard'" class="space-y-6">
+        <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
+          <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <div>
+              <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-orange-300 text-xs font-bold mb-2">
+                ✨ Resto Margin Control System
+              </div>
+              <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">
+                Halo, {{ user.name }}! 👋
+              </h1>
+              <p class="text-slate-300 text-xs sm:text-sm mt-1 max-w-2xl">
+                Pantau kontrol HPP otomatis dan perbandingan margin pesanan <strong class="text-emerald-400">Dine In</strong> vs <strong class="text-amber-400">Take Away</strong>.
+              </p>
+            </div>
+
+            <div class="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/15 text-xs space-y-1">
+              <div class="font-bold uppercase tracking-wider text-slate-300">Mode Perhitungan:</div>
+              <div class="text-base font-extrabold" :class="pricingMode === 'aktual' ? 'text-emerald-400' : 'text-rose-400'">
+                {{ pricingMode === 'aktual' ? '🟢 Harga Beli Aktual' : '🔴 Harga Beli Maksimal (Worst Case)' }}
+              </div>
+              <p class="text-[11px] text-slate-300">
+                {{ pricingMode === 'aktual' ? 'Menggunakan harga belanja riil saat ini.' : 'Simulasi jika pasar melonjak ke harga batas tertinggi.' }}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4 KPI Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold text-slate-500 uppercase">Avg Food Cost Dine In</span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">Target &le; 35%</span>
+            </div>
+            <div class="text-2xl font-extrabold text-slate-900 font-mono">{{ formatPercent(metrics.avgFCDineIn) }}</div>
+            <p class="text-[11px] text-slate-400 mt-1">Standar industri F&B aman</p>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold text-slate-500 uppercase">Avg Food Cost Take Away</span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">Ada Pembungkus</span>
+            </div>
+            <div class="text-2xl font-extrabold text-slate-900 font-mono">{{ formatPercent(metrics.avgFCTakeAway) }}</div>
+            <p class="text-[11px] text-slate-400 mt-1">Termasuk box, seal cup, kantong</p>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold text-slate-500 uppercase">Rata-rata Gross Margin</span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-800">Profit</span>
+            </div>
+            <div class="text-2xl font-extrabold text-slate-900 font-mono">{{ formatPercent(metrics.avgMarginDineIn) }}</div>
+            <p class="text-[11px] text-slate-400 mt-1">Take away: {{ formatPercent(metrics.avgMarginTakeAway) }}</p>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold text-slate-500 uppercase">Menu Margin Tipis</span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800">Perlu Evaluasi</span>
+            </div>
+            <div class="text-2xl font-extrabold text-slate-900 font-mono">{{ metrics.criticalCount }} <span class="text-xs text-slate-400 font-normal">menu</span></div>
+            <p class="text-[11px] text-slate-400 mt-1">Food Cost &gt; 40%</p>
+          </div>
+        </div>
+
+        <!-- Filter & Search Bar (FITUR 6) -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row gap-3 items-center justify-between">
+          <div class="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto">
+            <button v-for="cat in ['Semua', 'Makanan', 'Minuman', 'Snack']" :key="cat" @click="selectedCategory = cat" :class="selectedCategory === cat ? 'bg-slate-900 text-white font-bold' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'" class="px-3.5 py-1.5 rounded-xl text-xs whitespace-nowrap transition-colors">
+              {{ cat }}
+            </button>
+          </div>
+
+          <div class="w-full md:w-64">
+            <input v-model="searchQuery" type="text" placeholder="Cari menu..." class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-orange-500">
+          </div>
+        </div>
+
+        <!-- Tabel Kontrol HPP & Margin Lengkap (FITUR 2 & 5) -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+          <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="font-extrabold text-slate-900 text-sm">Tabel Rincian HPP Dine In vs Take Away</h3>
+            <span class="text-xs text-slate-400">{{ filteredCalculatedMenus.length }} menu ditampilkan</span>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase text-[10px] tracking-wider">
+                <tr>
+                  <th class="py-3 px-4">Menu & Kategori</th>
+                  <th class="py-3 px-4">HPP Pokok Dapur</th>
+                  <th class="py-3 px-4 bg-emerald-50 text-emerald-900">HPP Dine In</th>
+                  <th class="py-3 px-4 bg-emerald-50 text-emerald-900">Jual & Margin DI</th>
+                  <th class="py-3 px-4 bg-amber-50 text-amber-900">HPP Take Away (+Bungkus)</th>
+                  <th class="py-3 px-4 bg-amber-50 text-amber-900">Jual & Margin TA</th>
+                  <th class="py-3 px-4 text-center">Rekomendasi Jual</th>
+                  <th class="py-3 px-4 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <tr v-for="m in filteredCalculatedMenus" :key="m.id" class="hover:bg-slate-50 transition-colors">
+                  <td class="py-3 px-4">
+                    <div class="font-bold text-slate-900">{{ m.nama }}</div>
+                    <div class="flex items-center gap-1.5 mt-0.5">
+                      <span class="text-[10px] px-1.5 py-0.2 rounded bg-slate-100 font-semibold text-slate-600">{{ m.kategori }}</span>
+                      <span class="text-[10px] font-mono text-slate-400">{{ m.id }}</span>
+                    </div>
+                  </td>
+                  <td class="py-3 px-4 font-mono font-bold text-slate-700">{{ formatRupiah(m.hppPokok) }}</td>
+                  <td class="py-3 px-4 bg-emerald-50/30">
+                    <div class="font-mono font-bold text-emerald-800">{{ formatRupiah(m.hppTotalDineIn) }}</div>
+                    <div class="text-[10px] text-emerald-600">+{{ formatRupiah(m.hppEkstraDineIn) }} ekstra</div>
+                  </td>
+                  <td class="py-3 px-4 bg-emerald-50/30">
+                    <div class="flex items-center justify-between gap-1">
+                      <span class="font-mono font-bold text-slate-900">{{ formatRupiah(m.hargaJualDineIn) }}</span>
+                      <span class="font-mono text-[10px] font-bold px-1.5 py-0.2 rounded" :class="m.statusDineInClass">{{ formatPercent(m.marginDineIn) }}</span>
+                    </div>
+                    <div class="text-[10px] text-slate-400">Untung: {{ formatRupiah(m.profitDineIn) }}</div>
+                  </td>
+                  <td class="py-3 px-4 bg-amber-50/30">
+                    <div class="font-mono font-bold text-amber-800">{{ formatRupiah(m.hppTotalTakeAway) }}</div>
+                    <div class="text-[10px] text-amber-600">+{{ formatRupiah(m.hppPackagingTakeAway) }} pembungkus</div>
+                  </td>
+                  <td class="py-3 px-4 bg-amber-50/30">
+                    <div class="flex items-center justify-between gap-1">
+                      <span class="font-mono font-bold text-slate-900">{{ formatRupiah(m.hargaJualTakeAway) }}</span>
+                      <span class="font-mono text-[10px] font-bold px-1.5 py-0.2 rounded" :class="m.statusTakeAwayClass">{{ formatPercent(m.marginTakeAway) }}</span>
+                    </div>
+                    <div class="text-[10px] text-slate-400">Untung: {{ formatRupiah(m.profitTakeAway) }}</div>
+                  </td>
+                  <td class="py-3 px-4 text-center font-mono text-[11px]">
+                    <div class="font-bold text-slate-800">DI: {{ formatRupiah(m.rekomendasiHargaDineIn) }}</div>
+                    <div class="text-slate-500">TA: {{ formatRupiah(m.rekomendasiHargaTakeAway) }}</div>
+                  </td>
+                  <td class="py-3 px-4 text-right">
+                    <button @click="openEditMenu(m)" class="px-2.5 py-1 rounded-lg bg-orange-50 hover:bg-orange-100 text-orange-700 font-bold text-xs transition-colors">
+                      Edit Resep
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- TAB 2: MASTER BAHAN BAKU                   -->
+      <!-- ========================================== -->
+      <section v-if="activeTab === 'master-bahan'" class="space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
+          <div>
+            <h2 class="text-xl font-extrabold text-slate-900">Master Bahan Baku Restoran</h2>
+            <p class="text-xs text-slate-500 mt-1">1 Master mengatur 1 Harga Beli Aktual & 1 Batas Harga Beli Maksimal (plafon).</p>
+          </div>
+          <button @click="openAddBahan" class="px-4 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs shadow-md shadow-orange-500/20 transition-all">
+            + Tambah Bahan Baku
+          </button>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase text-[10px]">
+                <tr>
+                  <th class="py-3 px-4">ID & Nama Bahan</th>
+                  <th class="py-3 px-4">Kategori</th>
+                  <th class="py-3 px-4">Rasio Satuan</th>
+                  <th class="py-3 px-4 bg-emerald-50 text-emerald-900">Harga Beli Aktual (Rp)</th>
+                  <th class="py-3 px-4 bg-emerald-50 text-emerald-900">Harga / Satuan Pakai</th>
+                  <th class="py-3 px-4 bg-rose-50 text-rose-900">Harga Beli Maksimal (Rp)</th>
+                  <th class="py-3 px-4 bg-rose-50 text-rose-900">Harga / Satuan Pakai</th>
+                  <th class="py-3 px-4 text-center">Buffer Kenaikan</th>
+                  <th class="py-3 px-4 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <tr v-for="b in bahanList" :key="b.id" class="hover:bg-slate-50">
+                  <td class="py-3 px-4">
+                    <div class="font-bold text-slate-900">{{ b.nama }}</div>
+                    <div class="text-[10px] font-mono text-slate-400">{{ b.id }} &bull; {{ b.keterangan || '-' }}</div>
+                  </td>
+                  <td class="py-3 px-4">
+                    <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-700">{{ b.kategori }}</span>
+                  </td>
+                  <td class="py-3 px-4">1 {{ b.satuanBeli }} = {{ b.konversi }} {{ b.satuanPakai }}</td>
+                  <td class="py-3 px-4 font-mono font-bold text-emerald-700 bg-emerald-50/20">{{ formatRupiah(b.hargaAktual) }} / {{ b.satuanBeli }}</td>
+                  <td class="py-3 px-4 font-mono text-emerald-800 bg-emerald-50/20">{{ formatRupiah(b.hargaAktual / (b.konversi || 1)) }} / {{ b.satuanPakai }}</td>
+                  <td class="py-3 px-4 font-mono font-bold text-rose-700 bg-rose-50/20">{{ formatRupiah(b.hargaMaksimal) }} / {{ b.satuanBeli }}</td>
+                  <td class="py-3 px-4 font-mono text-rose-800 bg-rose-50/20">{{ formatRupiah(b.hargaMaksimal / (b.konversi || 1)) }} / {{ b.satuanPakai }}</td>
+                  <td class="py-3 px-4 text-center">
+                    <span class="inline-block px-1.5 py-0.5 rounded text-[10px] font-mono font-bold" :class="getBahanDiffClass(b)">
+                      +{{ formatPercent(getBahanDiff(b)) }}
+                    </span>
+                  </td>
+                  <td class="py-3 px-4 text-right">
+                    <button @click="openEditBahan(b)" class="px-2 py-1 text-slate-600 hover:text-orange-600 font-bold">Edit</button>
+                    <button @click="deleteBahan(b.id)" class="px-2 py-1 text-slate-400 hover:text-rose-600 font-bold">Hapus</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- TAB 3: RESEP & MENU                        -->
+      <!-- ========================================== -->
+      <section v-if="activeTab === 'resep-menu'" class="space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
+          <div>
+            <h2 class="text-xl font-extrabold text-slate-900">Resep & Otomatis Hitung HPP Menu</h2>
+            <p class="text-xs text-slate-500 mt-1">Cukup input gramasi bahan. Dilengkapi rincian biaya Dine In dan kemasan Take Away.</p>
+          </div>
+          <button @click="openAddMenu" class="px-4 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs shadow-md shadow-orange-500/20 transition-all">
+            + Buat Menu & Resep Baru
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div v-for="m in calculatedMenus" :key="m.id" class="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 flex flex-col justify-between">
+            <div>
+              <div class="flex items-start justify-between gap-2 mb-2">
+                <div>
+                  <div class="flex items-center gap-1.5 mb-1">
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-orange-100 text-orange-700">{{ m.kategori }}</span>
+                    <span class="text-[10px] font-mono text-slate-400">{{ m.id }}</span>
+                  </div>
+                  <h3 class="text-base font-extrabold text-slate-900">{{ m.nama }}</h3>
+                  <p class="text-xs text-slate-500 mt-0.5">{{ m.deskripsi }}</p>
+                </div>
+                <button @click="openEditMenu(m)" class="px-2.5 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-700">
+                  Edit
+                </button>
+              </div>
+
+              <div class="my-3 flex flex-wrap gap-1">
+                <span v-for="(r, idx) in (m.resepUtama || []).slice(0, 4)" :key="idx" class="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-700">
+                  {{ getBahanNama(r.bahanId) }} ({{ r.gramasi }}{{ getBahanSatuan(r.bahanId) }})
+                </span>
+                <span v-if="(m.resepUtama || []).length > 4" class="text-[10px] px-2 py-0.5 rounded bg-slate-50 text-slate-400">
+                  +{{ m.resepUtama.length - 4 }} bahan lagi
+                </span>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 pt-3 border-t border-slate-100 text-xs">
+              <div class="p-2.5 bg-emerald-50 rounded-xl space-y-1">
+                <div class="font-bold text-emerald-950 flex items-center justify-between">
+                  <span>Dine In:</span>
+                  <span class="font-mono text-[10px]">{{ formatPercent(m.marginDineIn) }}</span>
+                </div>
+                <div class="text-slate-500 text-[11px]">HPP: <strong class="font-mono text-slate-800">{{ formatRupiah(m.hppTotalDineIn) }}</strong></div>
+                <div class="text-slate-500 text-[11px]">Jual: <strong class="font-mono text-slate-800">{{ formatRupiah(m.hargaJualDineIn) }}</strong></div>
+              </div>
+
+              <div class="p-2.5 bg-amber-50 rounded-xl space-y-1">
+                <div class="font-bold text-amber-950 flex items-center justify-between">
+                  <span>Take Away:</span>
+                  <span class="font-mono text-[10px]">{{ formatPercent(m.marginTakeAway) }}</span>
+                </div>
+                <div class="text-slate-500 text-[11px]">HPP: <strong class="font-mono text-slate-800">{{ formatRupiah(m.hppTotalTakeAway) }}</strong></div>
+                <div class="text-slate-500 text-[11px]">Jual: <strong class="font-mono text-slate-800">{{ formatRupiah(m.hargaJualTakeAway) }}</strong></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- TAB 4: GOOGLE SHEET SYNC HUB               -->
+      <!-- ========================================== -->
+      <section v-if="activeTab === 'spreadsheet'" class="space-y-6">
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
+          <h2 class="text-xl font-extrabold text-slate-900">Koneksi Google Spreadsheet</h2>
+          <p class="text-xs text-slate-500 mt-1">Sinkronisasi data menu dan harga bahan baku dua arah dengan Google Sheet restoran Anda via Google Apps Script.</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+            <h3 class="font-bold text-slate-900 text-sm">Hubungkan Web App Script</h3>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Google Apps Script Web App URL (/exec):</label>
+              <input v-model="googleSheetUrl" type="text" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-mono focus:bg-white focus:outline-none focus:border-emerald-500">
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+              <button @click="pushToGoogleSheet" :disabled="isSyncing" class="py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all disabled:opacity-50">
+                <span>{{ isSyncing ? 'Menyimpan...' : 'Kirim Data ke Sheet' }}</span>
+              </button>
+              <button @click="pullFromGoogleSheet" :disabled="isSyncing" class="py-2.5 px-3 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50">
+                <span>{{ isSyncing ? 'Mengambil...' : 'Tarik Data dari Sheet' }}</span>
+              </button>
+            </div>
+
+            <p class="text-[11px] text-slate-400">
+              Update terakhir: {{ lastSyncTime || 'Belum pernah sinkronisasi' }}
+            </p>
+          </div>
+
+          <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200 text-xs space-y-2.5">
+            <h3 class="font-bold text-slate-900 text-sm">3 Langkah Pemasangan:</h3>
+            <ol class="list-decimal list-inside space-y-1.5 text-slate-600">
+              <li>Buka spreadsheet Anda di <a href="https://sheets.new" target="_blank" class="text-orange-600 font-bold underline">Google Sheets</a>.</li>
+              <li>Klik menu <strong>Extensions &gt; Apps Script</strong>.</li>
+              <li>Salin dan tempel kode <code>Code.gs</code>, lalu klik <strong>Deploy &gt; New deployment &gt; Web app (Anyone / Siapa saja)</strong>.</li>
+              <li>Salin URL Web App yang didapat ke kotak di samping kiri!</li>
+            </ol>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Modal Form Bahan Baku -->
+    <div v-if="showBahanModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+      <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4">
+        <div class="flex items-center justify-between border-b pb-3">
+          <h3 class="font-bold text-slate-900 text-base">{{ editingBahan ? 'Edit Bahan Baku' : 'Tambah Bahan Baku Baru' }}</h3>
+          <button @click="showBahanModal = false" class="text-slate-400 hover:text-slate-700">&times;</button>
+        </div>
+        <form @submit.prevent="saveBahan" class="space-y-3 text-xs">
+          <div>
+            <label class="block font-bold mb-1">Nama Bahan Baku</label>
+            <input v-model="bahanForm.nama" type="text" required class="w-full px-3 py-2 bg-slate-50 border rounded-xl">
+          </div>
+          <div>
+            <label class="block font-bold mb-1">Kategori</label>
+            <select v-model="bahanForm.kategori" class="w-full px-3 py-2 bg-slate-50 border rounded-xl">
+              <option v-for="c in ['Daging & Unggas', 'Sembako & Karbo', 'Sayur & Bumbu', 'Minuman & Kopi', 'Packaging Take Away', 'Perlengkapan Dine In', 'Lainnya']" :key="c" :value="c">{{ c }}</option>
+            </select>
+          </div>
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <label class="block font-bold mb-1">Satuan Beli</label>
+              <input v-model="bahanForm.satuanBeli" type="text" class="w-full px-2 py-1.5 border rounded-lg">
+            </div>
+            <div>
+              <label class="block font-bold mb-1">Satuan Pakai</label>
+              <input v-model="bahanForm.satuanPakai" type="text" class="w-full px-2 py-1.5 border rounded-lg">
+            </div>
+            <div>
+              <label class="block font-bold mb-1">Konversi</label>
+              <input v-model.number="bahanForm.konversi" type="number" class="w-full px-2 py-1.5 border rounded-lg font-mono">
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block font-bold mb-1 text-emerald-800">Harga Beli Aktual (Rp)</label>
+              <input v-model.number="bahanForm.hargaAktual" type="number" required class="w-full px-3 py-2 border border-emerald-300 rounded-xl font-mono font-bold text-emerald-800">
+            </div>
+            <div>
+              <label class="block font-bold mb-1 text-rose-800">Harga Beli Maksimal (Rp)</label>
+              <input v-model.number="bahanForm.hargaMaksimal" type="number" required class="w-full px-3 py-2 border border-rose-300 rounded-xl font-mono font-bold text-rose-800">
+            </div>
+          </div>
+          <div class="flex justify-end gap-2 pt-3 border-t">
+            <button @click="showBahanModal = false" type="button" class="px-4 py-2 border rounded-xl">Batal</button>
+            <button type="submit" class="px-5 py-2 bg-orange-500 text-white font-bold rounded-xl">Simpan</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal Form Resep Menu (FITUR 4 & 5) -->
+    <div v-if="showMenuModal" class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-900/60 backdrop-blur-xs">
+      <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full h-[90vh] flex flex-col overflow-hidden">
+        <div class="p-4 bg-slate-50 border-b flex items-center justify-between">
+          <h3 class="font-extrabold text-slate-900 text-base">{{ editingMenu ? 'Edit Resep & Margin Menu' : 'Tambah Menu Baru' }}</h3>
+          <button @click="showMenuModal = false" class="text-slate-400 hover:text-slate-700 text-xl">&times;</button>
+        </div>
+
+        <div class="p-6 overflow-y-auto space-y-4 flex-1 text-xs">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-slate-50 rounded-xl">
+            <div class="sm:col-span-2">
+              <label class="block font-bold mb-1">Nama Menu</label>
+              <input v-model="menuForm.nama" type="text" required class="w-full px-3 py-2 border rounded-lg bg-white">
+            </div>
+            <div>
+              <label class="block font-bold mb-1">Kategori</label>
+              <select v-model="menuForm.kategori" class="w-full px-3 py-2 border rounded-lg bg-white font-bold">
+                <option value="Makanan">Makanan 🍗</option>
+                <option value="Minuman">Minuman 🥤</option>
+                <option value="Snack">Snack 🍟</option>
+              </select>
+            </div>
+            <div>
+              <label class="block font-bold mb-1">Target Margin (%)</label>
+              <input v-model.number="menuForm.targetMargin" type="number" class="w-full px-3 py-2 border rounded-lg bg-white font-mono font-bold">
+            </div>
+            <div>
+              <label class="block font-bold mb-1 text-emerald-800">Harga Jual Dine In (Rp)</label>
+              <input v-model.number="menuForm.hargaJualDineIn" type="number" class="w-full px-3 py-2 border border-emerald-300 rounded-lg bg-white font-mono font-bold text-emerald-800">
+            </div>
+            <div>
+              <label class="block font-bold mb-1 text-amber-800">Harga Jual Take Away (Rp)</label>
+              <input v-model.number="menuForm.hargaJualTakeAway" type="number" class="w-full px-3 py-2 border border-amber-300 rounded-lg bg-white font-mono font-bold text-amber-800">
+            </div>
+          </div>
+
+          <!-- Section 1: Resep Dapur Pokok -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="font-extrabold text-slate-800 uppercase tracking-wider">1. Bahan Resep Pokok Dapur</span>
+              <button @click="addRecipeRow('resepUtama')" type="button" class="text-orange-600 font-bold hover:underline">+ Tambah Bahan</button>
+            </div>
+            <div v-for="(item, idx) in menuForm.resepUtama" :key="idx" class="flex items-center gap-2">
+              <select v-model="item.bahanId" class="flex-1 px-2.5 py-1.5 border rounded-lg">
+                <option v-for="b in bahanList" :key="b.id" :value="b.id">{{ b.nama }} ({{ b.satuanPakai }})</option>
+              </select>
+              <input v-model.number="item.gramasi" type="number" placeholder="Gramasi" class="w-24 px-2 py-1.5 border rounded-lg font-mono">
+              <span class="w-24 text-right font-mono font-bold text-slate-700">{{ formatRupiah(calcRowCost(item)) }}</span>
+              <button @click="menuForm.resepUtama.splice(idx, 1)" type="button" class="text-rose-500 font-bold px-1">&times;</button>
+            </div>
+          </div>
+
+          <!-- Section 2: Ekstra Dine In -->
+          <div class="space-y-2 pt-2 border-t">
+            <div class="flex items-center justify-between">
+              <span class="font-extrabold text-emerald-900 uppercase tracking-wider">2. Ekstra Dine In (Condiment / Napkin)</span>
+              <button @click="addRecipeRow('komponenDineIn')" type="button" class="text-emerald-700 font-bold hover:underline">+ Tambah Dine-In</button>
+            </div>
+            <div v-for="(item, idx) in menuForm.komponenDineIn" :key="idx" class="flex items-center gap-2">
+              <select v-model="item.bahanId" class="flex-1 px-2.5 py-1.5 border rounded-lg">
+                <option v-for="b in bahanList" :key="b.id" :value="b.id">{{ b.nama }} ({{ b.satuanPakai }})</option>
+              </select>
+              <input v-model.number="item.gramasi" type="number" placeholder="Qty" class="w-24 px-2 py-1.5 border rounded-lg font-mono">
+              <span class="w-24 text-right font-mono font-bold text-emerald-800">{{ formatRupiah(calcRowCost(item)) }}</span>
+              <button @click="menuForm.komponenDineIn.splice(idx, 1)" type="button" class="text-rose-500 font-bold px-1">&times;</button>
+            </div>
+          </div>
+
+          <!-- Section 3: Pembungkus Take Away -->
+          <div class="space-y-2 pt-2 border-t">
+            <div class="flex items-center justify-between">
+              <span class="font-extrabold text-amber-900 uppercase tracking-wider">3. Pembungkus Take Away (Box / Cup / Plastik)</span>
+              <button @click="addRecipeRow('komponenTakeAway')" type="button" class="text-amber-700 font-bold hover:underline">+ Tambah Packaging</button>
+            </div>
+            <div v-for="(item, idx) in menuForm.komponenTakeAway" :key="idx" class="flex items-center gap-2">
+              <select v-model="item.bahanId" class="flex-1 px-2.5 py-1.5 border rounded-lg">
+                <option v-for="b in bahanList" :key="b.id" :value="b.id">{{ b.nama }} ({{ b.satuanPakai }})</option>
+              </select>
+              <input v-model.number="item.gramasi" type="number" placeholder="Qty" class="w-24 px-2 py-1.5 border rounded-lg font-mono">
+              <span class="w-24 text-right font-mono font-bold text-amber-800">{{ formatRupiah(calcRowCost(item)) }}</span>
+              <button @click="menuForm.komponenTakeAway.splice(idx, 1)" type="button" class="text-rose-500 font-bold px-1">&times;</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-4 bg-slate-50 border-t flex justify-end gap-2">
+          <button @click="showMenuModal = false" type="button" class="px-4 py-2 border rounded-xl">Batal</button>
+          <button @click="saveMenu" type="button" class="px-5 py-2 bg-orange-500 text-white font-bold rounded-xl shadow-md">Simpan Menu</button>
+        </div>
+      </div>
+    </div>
+
+    <footer class="bg-white border-t border-slate-200 py-4 text-xs text-slate-500 text-center">
+      RestoCost Pro &bull; Cloudflare Deployed Edition &bull; Mode: <strong class="capitalize">{{ pricingMode }}</strong>
+    </footer>
+  </div>
+
+</div>
+
+<!-- Vue 3 App Logic -->
+<script>
+const { createApp, ref, computed } = Vue;
+
+createApp({
+  setup() {
+    const user = ref(JSON.parse(localStorage.getItem('restocost_user') || 'null'));
+    const restaurantName = ref("Resto Saya");
+    const activeTab = ref('dashboard');
+    const pricingMode = ref('aktual');
+    const selectedCategory = ref('Semua');
+    const searchQuery = ref('');
+
+    const googleSheetUrl = ref(localStorage.getItem('restocost_gsheet_url') || '');
+    const lastSyncTime = ref(localStorage.getItem('restocost_last_sync') || '');
+    const isSyncing = ref(false);
+
+    const defaultBahan = [
+      { id: "B001", nama: "Daging Ayam Fillet Dada", kategori: "Daging & Unggas", satuanBeli: "kg", satuanPakai: "gram", konversi: 1000, hargaAktual: 42000, hargaMaksimal: 48000, keterangan: "Fillet dada tanpa tulang" },
+      { id: "B002", nama: "Beras Pandan Wangi", kategori: "Sembako & Karbo", satuanBeli: "kg", satuanPakai: "gram", konversi: 1000, hargaAktual: 16000, hargaMaksimal: 18500, keterangan: "Pulen wangi" },
+      { id: "B003", nama: "Cabai Rawit Merah", kategori: "Sayur & Bumbu", satuanBeli: "kg", satuanPakai: "gram", konversi: 1000, hargaAktual: 45000, hargaMaksimal: 75000, keterangan: "Rawit merah" },
+      { id: "B004", nama: "Minyak Goreng Sawit", kategori: "Sembako & Karbo", satuanBeli: "liter", satuanPakai: "ml", konversi: 1000, hargaAktual: 17500, hargaMaksimal: 21000, keterangan: "Minyak goreng" },
+      { id: "B005", nama: "Biji Kopi House Blend", kategori: "Minuman & Kopi", satuanBeli: "kg", satuanPakai: "gram", konversi: 1000, hargaAktual: 135000, hargaMaksimal: 155000, keterangan: "Espresso" },
+      { id: "B006", nama: "Susu Fresh Milk UHT", kategori: "Minuman & Kopi", satuanBeli: "liter", satuanPakai: "ml", konversi: 1000, hargaAktual: 19500, hargaMaksimal: 22000, keterangan: "Fresh plain" },
+      { id: "B007", nama: "Paper Lunch Box L Laminasi", kategori: "Packaging Take Away", satuanBeli: "pack", satuanPakai: "pcs", konversi: 100, hargaAktual: 85000, hargaMaksimal: 100000, keterangan: "Dus makan" },
+      { id: "B008", nama: "Gelas Cup 16oz + Seal Lid", kategori: "Packaging Take Away", satuanBeli: "pack", satuanPakai: "pcs", konversi: 50, hargaAktual: 35000, hargaMaksimal: 42000, keterangan: "Cup take away" },
+      { id: "B009", nama: "Tisue Makan Meja Dine In", kategori: "Perlengkapan Dine In", satuanBeli: "pack", satuanPakai: "pcs", konversi: 250, hargaAktual: 25000, hargaMaksimal: 30000, keterangan: "Tisue meja" }
+    ];
+
+    const defaultMenus = [
+      {
+        id: "M001", nama: "Nasi Ayam Geprek Sambal Bawang", kategori: "Makanan", deskripsi: "Ayam krispi sambal rawit ulek pedas + nasi pulen", targetMargin: 65, hargaJualDineIn: 24000, hargaJualTakeAway: 26000,
+        resepUtama: [{ bahanId: "B001", gramasi: 140 }, { bahanId: "B002", gramasi: 120 }, { bahanId: "B003", gramasi: 25 }, { bahanId: "B004", gramasi: 35 }],
+        komponenDineIn: [{ bahanId: "B009", gramasi: 2 }],
+        komponenTakeAway: [{ bahanId: "B007", gramasi: 1 }]
+      },
+      {
+        id: "M002", nama: "Es Kopi Susu Gula Aren", kategori: "Minuman", deskripsi: "Espresso house blend + fresh milk + gula aren organik", targetMargin: 70, hargaJualDineIn: 18000, hargaJualTakeAway: 20000,
+        resepUtama: [{ bahanId: "B005", gramasi: 18 }, { bahanId: "B006", gramasi: 120 }],
+        komponenDineIn: [{ bahanId: "B009", gramasi: 1 }],
+        komponenTakeAway: [{ bahanId: "B008", gramasi: 1 }]
+      }
+    ];
+
+    const bahanList = ref(JSON.parse(localStorage.getItem('restocost_bahan') || JSON.stringify(defaultBahan)));
+    const menuList = ref(JSON.parse(localStorage.getItem('restocost_menus') || JSON.stringify(defaultMenus)));
+
+    const saveDataLocal = () => {
+      localStorage.setItem('restocost_bahan', JSON.stringify(bahanList.value));
+      localStorage.setItem('restocost_menus', JSON.stringify(menuList.value));
+    };
+
+    const bahanMap = computed(() => {
+      const map = {};
+      bahanList.value.forEach(b => map[b.id] = b);
+      return map;
+    });
+
+    const getBahanNama = (id) => bahanMap.value[id]?.nama || id;
+    const getBahanSatuan = (id) => bahanMap.value[id]?.satuanPakai || '';
+
+    const calcRowCost = (item) => {
+      const b = bahanMap.value[item.bahanId];
+      if (!b) return 0;
+      const unitPrice = (pricingMode.value === 'maksimal' ? b.hargaMaksimal : b.hargaAktual) / (b.konversi || 1);
+      return (Number(item.gramasi) || 0) * unitPrice;
+    };
+
+    const calculatedMenus = computed(() => {
+      return menuList.value.map(m => {
+        const hppPokok = (m.resepUtama || []).reduce((sum, r) => sum + calcRowCost(r), 0);
+        const hppEkstraDineIn = (m.komponenDineIn || []).reduce((sum, r) => sum + calcRowCost(r), 0);
+        const hppTotalDineIn = hppPokok + hppEkstraDineIn;
+
+        const hppPackagingTakeAway = (m.komponenTakeAway || []).reduce((sum, r) => sum + calcRowCost(r), 0);
+        const hppTotalTakeAway = hppPokok + hppPackagingTakeAway;
+
+        const profitDineIn = (m.hargaJualDineIn || 0) - hppTotalDineIn;
+        const marginDineIn = m.hargaJualDineIn > 0 ? (profitDineIn / m.hargaJualDineIn) * 100 : 0;
+        const foodCostDineIn = m.hargaJualDineIn > 0 ? (hppTotalDineIn / m.hargaJualDineIn) * 100 : 0;
+
+        const profitTakeAway = (m.hargaJualTakeAway || 0) - hppTotalTakeAway;
+        const marginTakeAway = m.hargaJualTakeAway > 0 ? (profitTakeAway / m.hargaJualTakeAway) * 100 : 0;
+        const foodCostTakeAway = m.hargaJualTakeAway > 0 ? (hppTotalTakeAway / m.hargaJualTakeAway) * 100 : 0;
+
+        const target = Number(m.targetMargin || 65);
+        const rekomendasiHargaDineIn = target < 100 ? Math.ceil((hppTotalDineIn / (1 - target / 100)) / 500) * 500 : hppTotalDineIn;
+        const rekomendasiHargaTakeAway = target < 100 ? Math.ceil((hppTotalTakeAway / (1 - target / 100)) / 500) * 500 : hppTotalTakeAway;
+
+        const getStatusClass = (fc) => fc <= 33 ? 'bg-emerald-100 text-emerald-800' : fc <= 40 ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800';
+
+        return {
+          ...m,
+          hppPokok,
+          hppEkstraDineIn,
+          hppTotalDineIn,
+          profitDineIn,
+          marginDineIn,
+          foodCostDineIn,
+          rekomendasiHargaDineIn,
+          statusDineInClass: getStatusClass(foodCostDineIn),
+          hppPackagingTakeAway,
+          hppTotalTakeAway,
+          profitTakeAway,
+          marginTakeAway,
+          foodCostTakeAway,
+          rekomendasiHargaTakeAway,
+          statusTakeAwayClass: getStatusClass(foodCostTakeAway)
+        };
+      });
+    });
+
+    const filteredCalculatedMenus = computed(() => {
+      return calculatedMenus.value.filter(m => {
+        const matchCat = selectedCategory.value === 'Semua' || m.kategori === selectedCategory.value;
+        const matchSearch = m.nama.toLowerCase().includes(searchQuery.value.toLowerCase());
+        return matchCat && matchSearch;
+      });
+    });
+
+    const metrics = computed(() => {
+      const list = calculatedMenus.value;
+      if (!list.length) return { avgFCDineIn: 0, avgFCTakeAway: 0, avgMarginDineIn: 0, avgMarginTakeAway: 0, criticalCount: 0 };
+      const sumFCDineIn = list.reduce((a, b) => a + b.foodCostDineIn, 0);
+      const sumFCTA = list.reduce((a, b) => a + b.foodCostTakeAway, 0);
+      const sumMarginDI = list.reduce((a, b) => a + b.marginDineIn, 0);
+      const sumMarginTA = list.reduce((a, b) => a + b.marginTakeAway, 0);
+      const critical = list.filter(m => m.foodCostDineIn > 40 || m.foodCostTakeAway > 40).length;
+
+      return {
+        avgFCDineIn: sumFCDineIn / list.length,
+        avgFCTakeAway: sumFCTA / list.length,
+        avgMarginDineIn: sumMarginDI / list.length,
+        avgMarginTakeAway: sumMarginTA / list.length,
+        criticalCount: critical
+      };
+    });
+
+    const formatRupiah = (num) => "Rp " + Math.round(num || 0).toLocaleString('id-ID');
+    const formatPercent = (num) => (Number(num) || 0).toFixed(1) + '%';
+    const getBahanDiff = (b) => b.hargaAktual > 0 ? ((b.hargaMaksimal - b.hargaAktual) / b.hargaAktual) * 100 : 0;
+    const getBahanDiffClass = (b) => getBahanDiff(b) > 25 ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-700';
+
+    const loginForm = ref({ username: 'admin', password: 'admin123' });
+    const handleLogin = () => {
+      const u = { name: loginForm.value.username.toUpperCase(), role: 'Owner Resto' };
+      user.value = u;
+      localStorage.setItem('restocost_user', JSON.stringify(u));
+    };
+    const quickLogin = (type) => {
+      const u = type === 'admin' ? { name: 'Owner Resto', role: 'Owner / Manager' } : { name: 'Head Chef Agus', role: 'Head Chef' };
+      user.value = u;
+      localStorage.setItem('restocost_user', JSON.stringify(u));
+    };
+    const handleLogout = () => {
+      user.value = null;
+      localStorage.removeItem('restocost_user');
+    };
+
+    const showBahanModal = ref(false);
+    const editingBahan = ref(null);
+    const bahanForm = ref({ nama: '', kategori: 'Daging & Unggas', satuanBeli: 'kg', satuanPakai: 'gram', konversi: 1000, hargaAktual: 0, hargaMaksimal: 0 });
+
+    const openAddBahan = () => {
+      editingBahan.value = null;
+      bahanForm.value = { nama: '', kategori: 'Daging & Unggas', satuanBeli: 'kg', satuanPakai: 'gram', konversi: 1000, hargaAktual: 0, hargaMaksimal: 0 };
+      showBahanModal.value = true;
+    };
+    const openEditBahan = (b) => {
+      editingBahan.value = b;
+      bahanForm.value = { ...b };
+      showBahanModal.value = true;
+    };
+    const saveBahan = () => {
+      if (editingBahan.value) {
+        const idx = bahanList.value.findIndex(b => b.id === editingBahan.value.id);
+        if (idx !== -1) bahanList.value[idx] = { ...bahanForm.value };
+      } else {
+        const newId = "B" + String(bahanList.value.length + 1).padStart(3, '0');
+        bahanList.value.push({ ...bahanForm.value, id: newId });
+      }
+      saveDataLocal();
+      showBahanModal.value = false;
+    };
+    const deleteBahan = (id) => {
+      if (confirm('Hapus bahan baku ini?')) {
+        bahanList.value = bahanList.value.filter(b => b.id !== id);
+        saveDataLocal();
+      }
+    };
+
+    const showMenuModal = ref(false);
+    const editingMenu = ref(null);
+    const menuForm = ref({ nama: '', kategori: 'Makanan', targetMargin: 65, hargaJualDineIn: 25000, hargaJualTakeAway: 27000, resepUtama: [], komponenDineIn: [], komponenTakeAway: [] });
+
+    const openAddMenu = () => {
+      editingMenu.value = null;
+      menuForm.value = { nama: '', kategori: 'Makanan', targetMargin: 65, hargaJualDineIn: 25000, hargaJualTakeAway: 27000, resepUtama: [], komponenDineIn: [], komponenTakeAway: [] };
+      showMenuModal.value = true;
+    };
+    const openEditMenu = (m) => {
+      editingMenu.value = m;
+      menuForm.value = JSON.parse(JSON.stringify(m));
+      showMenuModal.value = true;
+    };
+    const addRecipeRow = (field) => {
+      const first = bahanList.value[0]?.id || 'B001';
+      menuForm.value[field].push({ bahanId: first, gramasi: 50 });
+    };
+    const saveMenu = () => {
+      if (!menuForm.value.nama) return alert('Nama menu wajib diisi!');
+      if (editingMenu.value) {
+        const idx = menuList.value.findIndex(m => m.id === editingMenu.value.id);
+        if (idx !== -1) menuList.value[idx] = { ...menuForm.value };
+      } else {
+        const newId = "M" + String(menuList.value.length + 1).padStart(3, '0');
+        menuList.value.push({ ...menuForm.value, id: newId });
+      }
+      saveDataLocal();
+      showMenuModal.value = false;
+    };
+
+    const pushToGoogleSheet = async () => {
+      if (!googleSheetUrl.value) return alert('Masukkan URL Apps Script Web App!');
+      isSyncing.value = true;
+      try {
+        localStorage.setItem('restocost_gsheet_url', googleSheetUrl.value);
+        const res = await fetch(googleSheetUrl.value, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ bahanList: bahanList.value, menuList: menuList.value })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+          const t = new Date().toLocaleString('id-ID');
+          lastSyncTime.value = t;
+          localStorage.setItem('restocost_last_sync', t);
+          alert('Berhasil menyimpan data ke Google Spreadsheet!');
+        } else {
+          alert('Gagal: ' + data.message);
+        }
+      } catch (e) {
+        alert('Koneksi gagal: ' + e.message);
+      } finally {
+        isSyncing.value = false;
+      }
+    };
+
+    const pullFromGoogleSheet = async () => {
+      if (!googleSheetUrl.value) return alert('Masukkan URL Apps Script Web App!');
+      isSyncing.value = true;
+      try {
+        localStorage.setItem('restocost_gsheet_url', googleSheetUrl.value);
+        const res = await fetch(googleSheetUrl.value);
+        const data = await res.json();
+        if (data.status === 'success') {
+          if (data.bahanList) bahanList.value = data.bahanList;
+          if (data.menuList) menuList.value = data.menuList;
+          saveDataLocal();
+          const t = new Date().toLocaleString('id-ID');
+          lastSyncTime.value = t;
+          localStorage.setItem('restocost_last_sync', t);
+          alert('Berhasil memuat data dari Google Spreadsheet!');
+        } else {
+          alert('Gagal: ' + data.message);
+        }
+      } catch (e) {
+        alert('Koneksi gagal: ' + e.message);
+      } finally {
+        isSyncing.value = false;
+      }
+    };
+
+    return {
+      user, restaurantName, activeTab, pricingMode, selectedCategory, searchQuery,
+      googleSheetUrl, lastSyncTime, isSyncing,
+      bahanList, menuList, calculatedMenus, filteredCalculatedMenus, metrics,
+      formatRupiah, formatPercent, getBahanDiff, getBahanDiffClass,
+      getBahanNama, getBahanSatuan, calcRowCost,
+      loginForm, handleLogin, quickLogin, handleLogout,
+      showBahanModal, editingBahan, bahanForm, openAddBahan, openEditBahan, saveBahan, deleteBahan,
+      showMenuModal, editingMenu, menuForm, openAddMenu, openEditMenu, addRecipeRow, saveMenu,
+      pushToGoogleSheet, pullFromGoogleSheet
+    };
+  }
+}).mount('#app');
+</script>
+</body>
+</html>
